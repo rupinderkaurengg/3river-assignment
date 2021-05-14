@@ -4,12 +4,12 @@ curl --request POST \
   --header 'content-type: application/vnd.kafka.avro.v2+json' \
   --data '{
     "key_schema": "{\"name\":\"key\",\"type\": \"string\"}",
-    "value_schema_id": "input the correct id here",
+    "value_schema_id": "1",
     "records": [
         {
-            "key" : "0123",
+            "key" : "0124",
             "value": {
-                "balanceId": "0123",
+                "balanceId": "0124",
                 "accountId" : "11",
                 "balance" : 2.34
             }
