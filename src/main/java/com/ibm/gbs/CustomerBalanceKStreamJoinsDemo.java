@@ -1,6 +1,7 @@
 package com.ibm.gbs;
 
 
+import com.ibm.gbs.constants.Constant;
 import com.ibm.gbs.schema.Customer;
 import com.ibm.gbs.schema.CustomerBalance;
 import com.ibm.gbs.schema.Transaction;
@@ -17,6 +18,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 
+import static com.ibm.gbs.constants.Constant.*;
 import static io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG;
@@ -46,18 +48,18 @@ public class CustomerBalanceKStreamJoinsDemo {
         props.put(VALUE_DESERIALIZER_CLASS_CONFIG,
                 io.confluent.kafka.serializers.KafkaAvroDeserializer.class);
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "StreamJoinApp");
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_HOST);
         props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.StringSerde.class);
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, SpecificAvroSerde.class);
-        props.put(SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081");
+        props.put(SCHEMA_REGISTRY_URL_CONFIG, SCHEMA_REGISTRY_HOST);
         props.put(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG, "true");
         return props;
     }
 
     public Topology runStreamOpJoin() {
         final Map<String, String> serdeConfig = Collections.singletonMap(SCHEMA_REGISTRY_URL_CONFIG,
-                "http://localhost:8081");
+                SCHEMA_REGISTRY_HOST);
 
         Serde<CustomerBalance> customerBalanceSerde = new SpecificAvroSerde<>();
         customerBalanceSerde.configure(serdeConfig, false);
@@ -74,12 +76,12 @@ public class CustomerBalanceKStreamJoinsDemo {
 
 
         KStream<String, Customer> customerStream =
-                builder.stream("Customer", Consumed.with(stringSerde, customerSpecificAvroSerde));
+                builder.stream(CUSTOMER_TOPIC, Consumed.with(stringSerde, customerSpecificAvroSerde));
         KStream<String, Customer> keyCustomerStream = customerStream.map((key, customer) ->
                 new KeyValue<>(String.valueOf(customer.getAccountId()), customer));
 
         KStream<String, Transaction> transactionStream =
-                builder.stream("Balance", Consumed.with(stringSerde, transactionSpecificAvroSerde));
+                builder.stream(BALANCE_TOPIC, Consumed.with(stringSerde, transactionSpecificAvroSerde));
         KStream<String, Transaction> keyTransactionStream = transactionStream.map((key, transaction) ->
                 new KeyValue<>(String.valueOf(transaction.getAccountId()), transaction));
 
@@ -99,7 +101,7 @@ public class CustomerBalanceKStreamJoinsDemo {
         );
 
         joined.print(Printed.toSysOut());
-        joined.to("CustomerBalance", Produced.with(stringSerde, customerBalanceSerde));
+        joined.to(CUSTOMER_BALANCE_TOPIC, Produced.with(stringSerde, customerBalanceSerde));
 
         final Topology topology = builder.build();
         return topology;
